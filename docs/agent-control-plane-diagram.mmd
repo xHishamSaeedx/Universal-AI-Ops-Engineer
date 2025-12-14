@@ -1,0 +1,61 @@
+%% Agent Control Plane Architecture (Mermaid)
+flowchart LR
+    subgraph ING[Ingress & Signals]
+        OBS[Observability Events]
+        CHAOS[Chaos Events]
+        USER[User Prompts]
+    end
+
+    subgraph CTX[Perception & Context]
+        NORM[Signal Normalizer]
+        RAG[Docs/Runbooks RAG]
+    end
+
+    subgraph DIAG[Diagnosis]
+        DG[Diagnosis Agent]
+    end
+
+    subgraph PLAN[Planning & Coordination]
+        PL[Planner]
+        SAF["Safety & Policy"]
+    end
+
+    ORCH["Orchestrator (ordering, retries, backoff)"]
+
+    subgraph ROUTING[Routing]
+        ROUTE[Tool Router]
+    end
+
+    subgraph EXEC[Execution Targets]
+        ACT[Action Server]
+        CHAOSSRV[Chaos Server]
+    end
+
+    subgraph VER[Verification & Feedback]
+        VF[Verification Checks]
+        EXPL["Narrative / Comms"]
+    end
+
+    OBS --> NORM
+    CHAOS --> NORM
+    USER --> PL
+
+    NORM --> RAG
+    RAG --> DG
+    NORM --> DG
+
+    DG --> PL
+    PL --> SAF
+    SAF --> ORCH
+    SAF --> EXPL
+
+    ORCH --> ROUTE
+    ROUTE --> ACT
+    ROUTE --> CHAOSSRV
+
+    ACT --> VF
+    CHAOSSRV --> VF
+
+    VF --> PL
+    VF --> EXPL
+    EXPL --> USER

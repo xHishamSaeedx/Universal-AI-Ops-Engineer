@@ -1,0 +1,52 @@
+%% Universal AI Ops Engineer - Chaos-Ready Architecture (Mermaid)
+flowchart LR
+    subgraph U[Users & Stakeholders]
+        H[Humans]
+    end
+
+    subgraph O[Observability & Knowledge]
+        L["Logs/Metrics/Traces (Supabase/Grafana)"]
+        D["Docs & Runbooks (RAG Store)"]
+    end
+
+    subgraph A[Agent Control Plane]
+        P["Perception & Diagnosis Agent"]
+        R[Planner/Coordinator]
+        S["Safety & Approval Gate"]
+    end
+
+    subgraph X[Action & Execution Plane]
+        AS["Action Server (FastAPI/n8n)"]
+        SC["Script Library & Infra APIs"]
+    end
+
+    subgraph T[Target Stack]
+        API[backend-api]
+        DB[(Postgres)]
+        FE[frontend]
+    end
+
+    subgraph C[Chaos Server]
+        CI["Chaos injectors /break/*"]
+        CS["Scheduler (Chaos Monkey)"]
+    end
+
+    subgraph V[Validation & Reporting]
+        VR["Verification Checks & SLIs"]
+        REP["Dashboard & Incident Summaries"]
+    end
+
+    H -->|"Prompts/Approvals/Summaries"| R
+    CI -->|"Inject faults"| T
+    CS --> CI
+    CI -->|"Chaos events"| O
+    T -->|"Logs/metrics"| O
+    O -->|Signals| P
+    D -->|Context| P
+    P -->|Diagnosis| R
+    R -->|"Plan & tool calls"| S
+    S -->|"Approved actions"| AS
+    AS --> SC --> T
+    T -->|"Health results"| VR
+    VR --> R
+    R --> REP --> H

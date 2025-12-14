@@ -1,0 +1,74 @@
+%% Chaos Server Detailed Architecture (Mermaid)
+flowchart LR
+    subgraph U[Users & Agents]
+        UA[Humans/Agent]
+    end
+
+    subgraph API[Chaos API Layer]
+        B[/break/* endpoints/]
+        SCN[/scenarios/*/]
+        K[/kill & status/]
+    end
+
+    subgraph POL[Safety & Policy]
+        POLC["Policy Engine (approvals, allowlists, blast radius, duration caps)"]
+        KSW[Kill Switch]
+    end
+
+    subgraph SCHED[Scheduler]
+        MON["Chaos Monkey (randomized faults)"]
+        SR["Scenario Runner (ordered drills)"]
+    end
+
+    subgraph MOD[Fault Modules]
+        MAPI[API/Latency/5xx]
+        MDB[DB Auth/Pool/Locks]
+        MCPU[CPU/Mem/Disk]
+        MNET[Network/DNS/LB]
+        MCACHE[Cache/Queue]
+        MAUTH[Auth/Secrets]
+        M3P[Third-Party/API]
+    end
+
+    subgraph INT[Integration]
+        WEB[Webhooks to Agent/Obs]
+        CLI[CLI/SDK]
+    end
+
+    subgraph OBS[Observability]
+        EV["Events (run_id, fault, severity)"]
+        MET["Metrics (injections, duration, active)"]
+        LOGS[Structured Logs]
+    end
+
+    UA --> B
+    UA --> SCN
+    UA --> K
+
+    B --> POLC
+    SCN --> POLC
+    SCHED --> POLC
+    POLC --> KSW
+
+    POLC --> MON
+    POLC --> SR
+
+    MON --> MOD
+    SR --> MOD
+    POLC --> MOD
+    KSW --> MOD
+
+    MOD --> WEB
+    MOD --> EV
+    MOD --> MET
+    MOD --> LOGS
+
+    WEB --> UA
+    EV --> UA
+
+    INT --> UA
+    INT --> B
+    INT --> SCN
+
+    KSW --> WEB
+    KSW --> EV
