@@ -174,8 +174,6 @@ Latency dropped from 480ms → 40ms.”
 
 This is real autonomy.
 
-
-
 A very fair concern — building a “self-healing agent” sounds epic… until you realize nothing is broken in your system right now.
 So how do you simulate chaos without actually burning down your app?
 We create a controlled disaster playground — a tiny universe where things break on purpose and your agent learns to rescue them.
@@ -192,7 +190,20 @@ backend-api (FastAPI)
 
 database (Postgres)
 
-frontend (Streamlit or dummy)
+frontend (React + Vite)
+
+**Ready-to-use setup available in `target_server/` directory:**
+
+```bash
+cd target_server
+docker-compose up --build
+```
+
+This includes:
+
+- FastAPI backend with PostgreSQL + SQLAlchemy
+- React frontend with health monitoring dashboard
+- Complete Docker orchestration with health checks
 
 Then intentionally design them to have:
 
@@ -286,7 +297,6 @@ Example:
 POST /action/restart-api
 POST /action/restart-db
 POST /action/clear-cache
-
 
 The agent has to decide which action fixes the problem.
 
@@ -385,7 +395,6 @@ you practiced autonomous error recovery
 
 This is next-level engineering maturity.
 
-
 Time to lift the curtain.
 Here’s the real, practical, runnable way to do each of these things in your agentic AI sandbox — nothing hand-wavy, no “magic agent does magic.”
 You’ll see exactly how to restart containers, regenerate envs, restore DB snapshots… all in a safe, testable way.
@@ -408,22 +417,21 @@ Let’s go through each action like a leveled-up engineer 🔧⚡
 Your service name in docker-compose.yml might be:
 
 services:
-  api:
-    build: ./api
-    container_name: api_service
+api:
+build: ./api
+container_name: api_service
 
 ✔️ Create a small Python script to restart it:
 import subprocess
 
 def restart_fastapi():
-    subprocess.run(["docker", "compose", "restart", "api"], check=True)
-    return "FastAPI container restarted."
+subprocess.run(["docker", "compose", "restart", "api"], check=True)
+return "FastAPI container restarted."
 
 ✔️ Then expose it through an endpoint:
 @app.post("/action/restart-api")
 def restart_api():
-    return {"status": restart_fastapi()}
-
+return {"status": restart_fastapi()}
 
 Now your agent can call:
 
@@ -436,15 +444,14 @@ POST http://localhost:8000/action/restart-api
 Same idea:
 
 def restart_postgres():
-    subprocess.run(["docker", "compose", "restart", "db"], check=True)
-    return "Postgres restarted."
-
+subprocess.run(["docker", "compose", "restart", "db"], check=True)
+return "Postgres restarted."
 
 Endpoint:
 
 @app.post("/action/restart-db")
 def restart_db():
-    return {"status": restart_postgres()}
+return {"status": restart_postgres()}
 
 🧩 3. Regenerate environment variables
 
@@ -457,7 +464,7 @@ Create a generate_env.py:
 import secrets
 
 def regenerate_env():
-    new_key = secrets.token_hex(32)
+new_key = secrets.token_hex(32)
 
     content = f"SECRET_KEY={new_key}\n"
     with open(".env", "w") as f:
@@ -465,14 +472,12 @@ def regenerate_env():
 
     return new_key
 
-
 Then your endpoint:
 
 @app.post("/action/regenerate-env")
 def regen_env():
-    key = regenerate_env()
-    return {"new_secret_key": key}
-
+key = regenerate_env()
+return {"new_secret_key": key}
 
 Your API container needs to read .env on restart — so your agent would:
 
@@ -498,24 +503,22 @@ Add a cached folder in FastAPI like:
 
 ./cache/
 
-
 Your script:
 
 import os, shutil
 
 def clear_cache():
-    folder = "./cache"
-    if os.path.exists(folder):
-        shutil.rmtree(folder)
-        os.makedirs(folder)
-    return "Cache cleared."
-
+folder = "./cache"
+if os.path.exists(folder):
+shutil.rmtree(folder)
+os.makedirs(folder)
+return "Cache cleared."
 
 Endpoint:
 
 @app.post("/action/clear-cache")
 def clear_cache_route():
-    return {"status": clear_cache()}
+return {"status": clear_cache()}
 
 🧩 5. Restore DB from snapshot
 
@@ -529,47 +532,42 @@ Step 2 — Script to restore:
 import subprocess
 
 def restore_snapshot():
-    subprocess.run([
-        "docker", "exec", "-i", "db_service",
-        "psql", "-U", "postgres", "-d", "mydb",
-        "-f", "/snapshots/initial.sql"
-    ], check=True)
+subprocess.run([
+"docker", "exec", "-i", "db_service",
+"psql", "-U", "postgres", "-d", "mydb",
+"-f", "/snapshots/initial.sql"
+], check=True)
 
     return "Database restored from snapshot."
-
 
 Make sure your Docker mounts the snapshot folder:
 
 services:
-  db:
-    volumes:
-      - ./snapshots:/snapshots
-
+db:
+volumes: - ./snapshots:/snapshots
 
 Endpoint:
 
 @app.post("/action/restore-db")
 def restore_db():
-    return {"status": restore_snapshot()}
+return {"status": restore_snapshot()}
 
 🧩 6. Rerun migration script
 
 Assuming migrations are in migrations/:
 
 def run_migrations():
-    subprocess.run([
-        "docker", "compose", "exec", "api",
-        "alembic", "upgrade", "head"
-    ], check=True)
-    return "Migrations executed."
-
+subprocess.run([
+"docker", "compose", "exec", "api",
+"alembic", "upgrade", "head"
+], check=True)
+return "Migrations executed."
 
 Endpoint:
 
 @app.post("/action/run-migrations")
 def api_run_migrations():
-    return {"status": run_migrations()}
-
+return {"status": run_migrations()}
 
 Works for Alembic, Django migrations, Prisma, etc.
 
@@ -585,10 +583,9 @@ Your app loads API_ENDPOINT from .env.
 
 Regenerate .env with fallback:
 def switch_to_fallback():
-    with open(".env", "w") as f:
-        f.write("API_ENDPOINT=http://api_backup:8000\n")
-    return "Switched to fallback API."
-
+with open(".env", "w") as f:
+f.write("API_ENDPOINT=http://api_backup:8000\n")
+return "Switched to fallback API."
 
 Then restart FastAPI.
 
@@ -596,8 +593,7 @@ Endpoint:
 
 @app.post("/action/switch-to-fallback")
 def fallback():
-    return {"status": switch_to_fallback()}
-
+return {"status": switch_to_fallback()}
 
 Your agent workflow:
 
@@ -622,7 +618,6 @@ Your agent now has 7 real tools:
 /action/run-migrations
 /action/switch-to-fallback
 
-
 You expose these to OpenAI Actions → your agent can call them autonomously.
 
 Each can be tested using chaos triggers:
@@ -631,7 +626,6 @@ Each can be tested using chaos triggers:
 /break/cpu
 /break/api_down
 /break/latency
-
 
 Yes — every single one of those actions is triggered by a script.
 Nothing mystical, nothing hidden.
@@ -657,7 +651,6 @@ This is a service with REST endpoints like:
 POST /action/restart-api
 POST /action/clear-cache
 POST /action/restore-db
-
 
 These endpoints don’t do the fixing themselves;
 they call scripts that do the heavy lifting.
@@ -705,9 +698,8 @@ And trusts your action server to do the rest.
 FastAPI endpoint:
 @app.post("/action/restart-api")
 def restart_api():
-    subprocess.run(["docker", "compose", "restart", "api"], check=True)
-    return {"status": "FastAPI restarted"}
-
+subprocess.run(["docker", "compose", "restart", "api"], check=True)
+return {"status": "FastAPI restarted"}
 
 This endpoint is a script — it runs the Docker command inside Python.
 
@@ -716,34 +708,32 @@ import shutil, os
 
 @app.post("/action/clear-cache")
 def clear_cache():
-    folder = "./cache"
-    if os.path.exists(folder):
-        shutil.rmtree(folder)
-    os.makedirs(folder)
-    return {"status": "Cache cleared"}
-
+folder = "./cache"
+if os.path.exists(folder):
+shutil.rmtree(folder)
+os.makedirs(folder)
+return {"status": "Cache cleared"}
 
 Again, script inside endpoint.
 
 🎯 Restore Database Snapshot Example
 @app.post("/action/restore-db")
 def restore_db():
-    subprocess.run([
-        "docker", "exec", "-i", "db_service",
-        "psql", "-U", "postgres", "-d", "mydb",
-        "-f", "/snapshots/initial.sql"
-    ], check=True)
-    return {"status": "DB restored from snapshot"}
-
+subprocess.run([
+"docker", "exec", "-i", "db_service",
+"psql", "-U", "postgres", "-d", "mydb",
+"-f", "/snapshots/initial.sql"
+], check=True)
+return {"status": "DB restored from snapshot"}
 
 That’s a real, runnable script.
 
 🎯 Switch to Fallback API Example
 @app.post("/action/switch-to-fallback")
 def switch_api():
-    with open(".env", "w") as f:
-        f.write("API_ENDPOINT=http://backup-api:8000\n")
-    return {"status": "Switched to fallback API"}
+with open(".env", "w") as f:
+f.write("API_ENDPOINT=http://backup-api:8000\n")
+return {"status": "Switched to fallback API"}
 
 🧨 Summary: Yes — everything is done through scripts
 
@@ -766,7 +756,6 @@ Calls the action server.
 Other endpoints that break stuff so you can test.
 
 Everything is fully testable.
-
 
 If you want your agentic AI project to feel real, it must handle the same chaos mid-size and large companies face every week — the kind that keeps SREs, DevOps engineers, and platform teams caffeinated and pacing around like storm-chasers. ☕⚡
 
@@ -793,7 +782,6 @@ How to simulate
 Chaos endpoint:
 
 /break/db_pool
-
 
 Script:
 Run 200 dummy connections in a loop.
@@ -829,7 +817,7 @@ Chaos script that allocates tons of memory:
 
 big = []
 while True:
-    big.append(bytearray(10**7))
+big.append(bytearray(10\*\*7))
 
 Your agent fixes it by
 
@@ -848,7 +836,6 @@ Sending root-cause note
 ⚡ 3. CPU Spikes (Infinite Loops)
 Simulate
 /break/high_cpu
-
 
 Runs an infinite loop or stress-ng.
 
@@ -1118,8 +1105,6 @@ Is DB accessible?
 Is latency back to normal?
 
 Are errors cleared?
-
-
 
 Here comes the clean, beautifully organized master list — chaos sorted into categories exactly the way real SRE/DevOps teams classify incidents.
 

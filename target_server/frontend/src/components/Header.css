@@ -1,0 +1,50 @@
+.header {
+  background: #2a2a2a;
+  border-bottom: 1px solid #404040;
+  padding: 1rem 0;
+  margin-bottom: 2rem;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.nav-brand h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #4ade80;
+}
+
+.nav-brand p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-links a {
+  color: #d1d5db;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.nav-links a:hover {
+  background: #404040;
+  color: white;
+}
+
+.nav-links a.active {
+  background: #4ade80;
+  color: #1a1a1a;
+}

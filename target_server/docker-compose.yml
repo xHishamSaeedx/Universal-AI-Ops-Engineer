@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    container_name: target_server_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: target_server
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d target_server"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - target_server_network
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: target_server_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/target_server
+      - DEBUG=true
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - target_server_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  target_server_network:
+    driver: bridge
