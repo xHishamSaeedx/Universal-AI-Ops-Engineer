@@ -13,7 +13,9 @@ pip install -r requirements.txt
 2. Create environment file:
 
 ```bash
-cp .env.example .env
+# Copy the example file to a real .env (Windows: copy, macOS/Linux: cp)
+# Note: the app reads from .env if present, or from process environment variables.
+cp env.example .env
 ```
 
 3. Update database URL in `.env` if needed.
@@ -37,7 +39,7 @@ The API will be available at http://localhost:8000
 backend/
 ├── main.py                 # FastAPI application + server runner
 ├── requirements.txt        # Python dependencies
-├── .env.example           # Environment variables template
+├── env.example            # Environment variables template
 ├── app/
 │   ├── __init__.py
 │   ├── core/

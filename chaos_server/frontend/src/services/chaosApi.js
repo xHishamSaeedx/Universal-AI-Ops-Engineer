@@ -30,4 +30,23 @@ async function fetchJson(path, init) {
 export const chaosApi = {
   getHealth: () => fetchJson(`${API_BASE}/v1/health`),
   getHealthz: () => fetchJson(`${API_BASE}/v1/healthz`),
+  breakDbPool: ({ targetBaseUrl, connections, holdSeconds } = {}) => {
+    const params = new URLSearchParams();
+    if (targetBaseUrl) params.set("target_base_url", targetBaseUrl);
+    if (typeof connections === "number")
+      params.set("connections", String(connections));
+    if (typeof holdSeconds === "number")
+      params.set("hold_seconds", String(holdSeconds));
+    const qs = params.toString();
+    const url = `${API_BASE}/v1/break/db_pool` + (qs ? "?" + qs : "");
+    return fetchJson(url, {
+      method: "POST",
+    });
+  },
+  getDbPoolAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/db_pool/${attackId}`),
+  stopDbPoolAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/db_pool/${attackId}/stop`, {
+      method: "POST",
+    }),
 };

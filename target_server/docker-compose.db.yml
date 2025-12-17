@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database (DB-only compose for local backend dev)
+  db:
+    image: postgres:15
+    container_name: target_server_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: target_server
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d target_server"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local

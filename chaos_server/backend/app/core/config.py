@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # CORS
     cors_allow_origins: list[str] = ["*"]
 
+    # Target server (victim) base URL
+    # Example (docker-compose bridge): http://target_server_api:8000
+    target_api_base_url: str = "http://localhost:8000"
+
     class Config:
         env_file = ".env"
         case_sensitive = False

@@ -47,7 +47,11 @@ npm run dev
 1. **Database**: Start PostgreSQL locally or use Docker:
 
 ```bash
-docker-compose up db -d
+# DB only (recommended when running backend locally)
+docker compose -f docker-compose.db.yml up -d
+
+# Or, using the main compose file:
+docker compose up db -d
 ```
 
 2. **Backend**: Install dependencies and run:
@@ -83,6 +87,8 @@ Create a `.env` file in the backend directory:
 DATABASE_URL=postgresql://postgres:password@localhost:5432/target_server
 DEBUG=true
 ```
+
+You can start from `backend/env.example` and copy it to `backend/.env`.
 
 ## API Endpoints
 

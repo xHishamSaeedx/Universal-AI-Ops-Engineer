@@ -4,6 +4,9 @@ from typing import Optional
 class Settings(BaseSettings):
     # Database settings
     database_url: str = "postgresql://postgres:password@localhost:5432/target_server"
+    db_pool_size: int = 5
+    db_max_overflow: int = 0
+    db_pool_timeout: int = 3
 
     # Application settings
     app_name: str = "Target Server API"

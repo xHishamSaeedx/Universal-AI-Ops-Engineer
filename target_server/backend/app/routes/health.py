@@ -4,6 +4,7 @@ from sqlalchemy import text
 from ..core.database import get_db
 import psutil
 import time
+from pathlib import Path
 
 router = APIRouter()
 
@@ -16,8 +17,8 @@ async def health_check():
     # Test database connection
     try:
         from ..core.database import get_session_local
-        SessionLocal = get_session_local()
-        db = SessionLocal()
+        session_local_cls = get_session_local()
+        db = session_local_cls()
         db.execute(text("SELECT 1"))
         db.close()
         db_status = "healthy"
@@ -27,10 +28,12 @@ async def health_check():
         db_error = str(e)
 
     # Get system metrics
+    # Cross-platform disk root (Windows needs a drive like "C:\\")
+    disk_root = Path.cwd().anchor or "/"
     system_metrics = {
         "cpu_percent": psutil.cpu_percent(interval=1),
         "memory_percent": psutil.virtual_memory().percent,
-        "disk_percent": psutil.disk_usage('/').percent
+        "disk_percent": psutil.disk_usage(disk_root).percent
     }
 
     # Determine overall health
