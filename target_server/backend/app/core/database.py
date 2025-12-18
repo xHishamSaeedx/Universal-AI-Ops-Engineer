@@ -54,28 +54,49 @@ def create_tables():
         logger.warning("Database tables will be created when the database is available.")
 
 
+def _calculate_pool_health(utilization: float) -> tuple[str, str]:
+    """Calculate pool health and utilization status based on percentage."""
+    if utilization >= 90:
+        return "critical", "high"
+    elif utilization >= 70:
+        return "degraded", "elevated"
+    elif utilization >= 50:
+        return "healthy", "moderate"
+    else:
+        return "healthy", "low"
+
+
 def get_pool_metrics() -> dict:
     """
     Best-effort pool metrics for observability/debugging.
-    Works when the underlying pool is QueuePool (typical for Postgres).
+    Returns sanitized metrics that indicate health without revealing exact state.
     """
     engine = get_engine()
     pool = getattr(engine, "pool", None)
     if pool is None:
-        return {"pool": "unknown"}
+        return {"pool_health": "unknown"}
 
-    status_fn = getattr(pool, "status", None)
     checkedout_fn = getattr(pool, "checkedout", None)
-
+    pool_size = getattr(pool, "size", lambda: settings.db_pool_size)()
+    
     metrics: dict = {
         "pool_type": pool.__class__.__name__,
-        "status": status_fn() if callable(status_fn) else str(pool),
+        "pool_size": pool_size,
     }
 
+    # Provide health indicators instead of exact counts
     if callable(checkedout_fn):
         try:
-            metrics["checked_out"] = checkedout_fn()
+            checked_out = checkedout_fn()
+            utilization = (checked_out / pool_size * 100) if pool_size > 0 else 0
+            health, utilization_level = _calculate_pool_health(utilization)
+            metrics["pool_health"] = health
+            metrics["pool_utilization"] = utilization_level
         except Exception:
-            pass
+            metrics["pool_health"] = "unknown"
+            metrics["pool_utilization"] = "unknown"
+    else:
+        metrics["pool_health"] = "unknown"
+        metrics["pool_utilization"] = "unknown"
 
     return metrics

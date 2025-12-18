@@ -34,10 +34,10 @@ def hold_db_connection(
             conn.execute(text("SELECT pg_sleep(:seconds)"), {"seconds": seconds})
         return {"status": "released", "held_seconds": seconds}
     except SATimeoutError as e:
-        # SRE-style signal for downstream parsing
+        # Log the full error but don't expose details to clients
         logger.error("DB_ERROR: %s", str(e))
-        raise HTTPException(status_code=503, detail="DB pool exhausted (timeout)")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
     except Exception as e:
         logger.error("DB_ERROR: %s", str(e))
-        raise HTTPException(status_code=503, detail="DB error")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
 
