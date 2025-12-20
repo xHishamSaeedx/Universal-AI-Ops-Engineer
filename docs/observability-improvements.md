@@ -201,3 +201,4 @@ This setup now mirrors how real monitoring works:
 - **Health checks**: Indicate healthy/unhealthy, not exact causes
 
 The agent must **act like a real SRE** - investigating, correlating, and diagnosing rather than just reading obvious error messages.
+
