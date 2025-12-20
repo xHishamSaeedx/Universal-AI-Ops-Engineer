@@ -174,19 +174,19 @@ See [docs/port-allocation.md](docs/port-allocation.md) for details.
 
 ## 📚 Documentation
 
-- **[Architecture Overview](docs/architecture.md)** - System design and components
+### Core Architecture
+
+- **[Agent Control Plane](docs/agent-control-plane.md)** - AI agent with LangGraph ⭐
 - **[Chaos Server](docs/chaos-server-architecture.md)** - Fault injection system
-- **[Pool Exhaustion Guide](docs/poolexhaustion.md)** - DB connection pool scenario
-- **[Action Server Integration](docs/action-server-integration.md)** - Remediation API usage
+- **[Pool Exhaustion Scenario](docs/poolexhaustion.md)** - DB connection pool chaos
 - **[Port Allocation](docs/port-allocation.md)** - Service port mappings
-- **[Observability Improvements](docs/observability-improvements.md)** - Metrics and health checks
+- **[Observability](docs/observability-improvements.md)** - Metrics and health checks
 
-### Component READMEs
+### Component Guides
 
-- [Target Server](target_server/README.md) - The application that fails
-- [Chaos Server](chaos_server/backend/README.md) - Fault injection
-- [Action Server](action_server/backend/README.md) - Remediation control
-- [Action Server Quick Start](action_server/QUICKSTART.md) - 5-minute setup
+- **[Action Server](action_server/backend/README.md)** - Remediation API
+- **[Action Server Quickstart](action_server/QUICKSTART.md)** - 5-minute setup
+- **[Target Server](target_server/backend/README.md)** - Application setup
 
 ## 🧪 Testing
 
