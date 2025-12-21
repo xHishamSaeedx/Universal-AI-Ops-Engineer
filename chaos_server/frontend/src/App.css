@@ -1,141 +1,83 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: left;
+.app {
+  min-height: 100vh;
+  background: #000000;
 }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+.home-page {
+  width: 100%;
+  overflow-x: hidden;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+/* Dark theme utilities */
+* {
+  box-sizing: border-box;
 }
 
-.subtle {
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 0.95rem;
-}
-
-.panel {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.label {
-  font-weight: 600;
-}
-
-.badge {
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.badge.ok {
-  border-color: rgba(34, 197, 94, 0.45);
-  background: rgba(34, 197, 94, 0.12);
-}
-
-.badge.warn {
-  border-color: rgba(245, 158, 11, 0.45);
-  background: rgba(245, 158, 11, 0.12);
-}
-
-.badge.err {
-  border-color: rgba(239, 68, 68, 0.5);
-  background: rgba(239, 68, 68, 0.12);
-}
-
-.btn {
-  border-radius: 10px;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
-  cursor: pointer;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.code {
+body {
   margin: 0;
-  padding: 0.75rem;
+  padding: 0;
+  background: #000000;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  line-height: 1.5;
+}
+
+/* Utility classes for consistent dark theme */
+.text-primary {
+  color: #9333ea;
+}
+
+.text-secondary {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.text-muted {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bg-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.btn-primary {
+  background: rgba(147, 51, 234, 0.1);
+  border: 1px solid rgba(147, 51, 234, 0.3);
+  color: white;
+  padding: 0.75rem 1.5rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.25);
-  overflow: auto;
-  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
-.errText {
-  color: rgba(255, 180, 180, 0.95);
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.4);
 }
 
-.hint {
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 0.9rem;
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.fieldLabel {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.input {
+.btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.75rem 1.5rem;
   border-radius: 10px;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.18);
-  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
-.btnRow {
-  display: flex;
-  gap: 0.5rem;
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
-.btnDanger {
-  border-color: rgba(239, 68, 68, 0.6);
-  background: rgba(239, 68, 68, 0.14);
-}
-
-@media (max-width: 900px) {
-  .formGrid {
-    grid-template-columns: 1fr;
+/* Responsive design */
+@media (max-width: 768px) {
+  .app {
+    padding-top: 80px; /* Account for mobile navbar */
   }
 }
