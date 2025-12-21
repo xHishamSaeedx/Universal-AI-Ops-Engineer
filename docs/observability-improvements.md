@@ -202,3 +202,6 @@ This setup now mirrors how real monitoring works:
 
 The agent must **act like a real SRE** - investigating, correlating, and diagnosing rather than just reading obvious error messages.
 
+
+
+
