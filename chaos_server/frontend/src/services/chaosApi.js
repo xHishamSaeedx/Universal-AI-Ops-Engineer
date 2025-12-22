@@ -49,4 +49,26 @@ export const chaosApi = {
     fetchJson(`${API_BASE}/v1/break/db_pool/${attackId}/stop`, {
       method: "POST",
     }),
+  breakMigrations: ({
+    targetDatabaseUrl,
+    failureType,
+    durationSeconds,
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (targetDatabaseUrl) params.set("target_database_url", targetDatabaseUrl);
+    if (failureType) params.set("failure_type", failureType);
+    if (typeof durationSeconds === "number")
+      params.set("duration_seconds", String(durationSeconds));
+    const qs = params.toString();
+    const url = `${API_BASE}/v1/break/migrations` + (qs ? "?" + qs : "");
+    return fetchJson(url, {
+      method: "POST",
+    });
+  },
+  getMigrationsAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/migrations/${attackId}`),
+  stopMigrationsAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/migrations/${attackId}/stop`, {
+      method: "POST",
+    }),
 };

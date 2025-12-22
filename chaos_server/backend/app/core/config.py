@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # Example (docker-compose bridge): http://target_server_api:8000
     target_api_base_url: str = "http://localhost:8000"
 
+    # Target server database URL (for direct DB access)
+    # Example (docker-compose bridge): postgresql://postgres:password@target_server_db:5432/target_server
+    target_database_url: str = "postgresql://postgres:password@localhost:5432/target_server"
+
     class Config:
         env_file = ".env"
         case_sensitive = False
