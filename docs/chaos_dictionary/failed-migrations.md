@@ -105,144 +105,29 @@ kubectl scale deployment app --replicas=1
 - **Maintenance Mode**: Display maintenance page while resolving migration issues
 
 ### Quick Diagnosis Commands
-```bash
-# Check current migration state
-alembic current
-
-# View migration history
-alembic history
-
-# Check for table locks
-SELECT * FROM pg_locks WHERE NOT granted;
-
-# Monitor active queries
-SELECT * FROM pg_stat_activity WHERE state != 'idle';
-```
+Checking the current migration state reveals which migration version the database is currently at, helping identify if the migration process was interrupted mid-execution. Reviewing migration history shows the sequence of changes and can highlight where the failure occurred. Examining table locks identifies any blocking operations that might be preventing the migration from completing. Monitoring active queries provides insight into what database operations are currently running and potentially causing conflicts.
 
 ## 6. Different Ways to Diagnose Root Cause
 
 ### Database State Analysis
-```sql
--- Check migration version table
-SELECT * FROM alembic_version;
-
--- Verify schema consistency
-SELECT schemaname, tablename, tableowner
-FROM pg_tables
-WHERE schemaname = 'public'
-ORDER BY tablename;
-
--- Check for orphaned objects
-SELECT conname, conrelid::regclass, confrelid::regclass
-FROM pg_constraint
-WHERE conrelid NOT IN (SELECT oid FROM pg_class);
-```
+Examining the migration version table shows the current state of applied migrations and can reveal version conflicts or incomplete migration states. Schema consistency verification compares the actual database structure against expected table definitions to identify missing or incorrectly modified objects. Checking for orphaned objects detects database constraints that reference tables or columns that no longer exist, which commonly occurs during failed migrations.
 
 ### Migration File Inspection
-```python
-# Examine migration content for issues
-def check_migration_safety(revision_id):
-    migration = get_migration(revision_id)
-
-    # Check for data-destructive operations
-    if 'DROP TABLE' in migration.upgrade():
-        print(f"WARNING: {revision_id} drops tables")
-
-    # Verify downgrade path exists
-    if not migration.downgrade():
-        print(f"ERROR: {revision_id} missing downgrade path")
-
-    # Check for long-running operations
-    if 'CREATE INDEX' in migration.upgrade():
-        print(f"PERF: {revision_id} creates indexes - monitor duration")
-```
+Analyzing the content of migration files reveals potential issues before execution. Checking for data-destructive operations like table drops helps identify migrations that might cause irreversible data loss. Verifying that downgrade paths exist ensures that failed migrations can be safely rolled back to a previous state. Identifying long-running operations such as index creation helps anticipate performance impacts and plan appropriate monitoring during deployment.
 
 ### Log Analysis and Monitoring
-```bash
-# Search for migration-related errors
-grep -r "alembic" /var/log/application/ | grep -i error
-
-# Monitor migration execution time
-alembic upgrade head --sql  # Preview SQL before execution
-
-# Check database performance during migration
-watch -n 5 "psql -c 'SELECT * FROM pg_stat_activity;'"
-```
+Searching through application logs for migration-related errors provides detailed information about what went wrong and when. Monitoring migration execution time helps identify performance bottlenecks and potential timeout issues. Checking database performance during migration reveals how the migration is impacting other database operations and system resources.
 
 ### Environment Comparison
-```bash
-# Compare schema across environments
-pg_dump --schema-only dev_db > dev_schema.sql
-pg_dump --schema-only prod_db > prod_schema.sql
-diff dev_schema.sql prod_schema.sql
-
-# Check configuration differences
-diff dev.env prod.env
-```
+Comparing database schemas across different environments (development, staging, production) helps identify inconsistencies that might cause migrations to work in one environment but fail in another. Checking configuration differences between environments reveals settings that might affect migration behavior, such as timeout values, connection limits, or resource allocations.
 
 ### Transaction and Lock Analysis
-```sql
--- Identify blocking transactions
-SELECT
-    blocked_locks.pid AS blocked_pid,
-    blocking_locks.pid AS blocking_pid,
-    blocked_activity.usename AS blocked_user,
-    blocking_activity.usename AS blocking_user,
-    blocked_activity.query AS blocked_query,
-    blocking_activity.query AS blocking_query
-FROM pg_locks blocked_locks
-JOIN pg_stat_activity blocked_activity ON blocked_activity.pid = blocked_locks.pid
-JOIN pg_locks blocking_locks ON blocking_locks.locktype = blocked_locks.locktype
-    AND blocking_locks.database IS NOT DISTINCT FROM blocked_locks.database
-    AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
-    AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page
-    AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple
-    AND blocking_locks.virtualxid IS NOT DISTINCT FROM blocked_locks.virtualxid
-    AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid
-    AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid
-    AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid
-    AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid
-    AND blocking_locks.pid != blocked_locks.pid
-JOIN pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
-WHERE NOT blocked_locks.granted;
-```
+Identifying blocking transactions reveals which database operations are preventing migration completion. Understanding the relationship between blocked and blocking processes helps determine whether the migration is stuck waiting for other operations to complete, or if it's holding locks that are blocking critical application queries. This analysis is crucial for deciding whether to terminate blocking transactions or wait for them to complete naturally.
 
 ### Automated Diagnostic Tools
-```python
-def diagnose_migration_failure():
-    diagnostics = {
-        'migration_state': check_alembic_version(),
-        'database_locks': check_active_locks(),
-        'schema_consistency': verify_schema_integrity(),
-        'resource_usage': monitor_system_resources(),
-        'recent_changes': audit_recent_db_changes()
-    }
-
-    # Generate diagnostic report
-    report = generate_diagnostic_report(diagnostics)
-
-    # Suggest remediation steps
-    recommendations = generate_recommendations(diagnostics)
-
-    return report, recommendations
-```
+Automated diagnostic systems collect comprehensive information about migration state, database locks, schema consistency, resource usage, and recent changes. These tools generate structured diagnostic reports that highlight the most likely causes of migration failures and provide prioritized recommendations for remediation. This systematic approach ensures that all relevant factors are considered when troubleshooting complex migration issues.
 
 ### Chaos Engineering Validation
-```python
-# Simulate migration failures for testing
-def simulate_migration_chaos():
-    scenarios = [
-        'network_disconnect_during_migration',
-        'kill_migration_process_mid_execution',
-        'concurrent_migration_attempts',
-        'insufficient_disk_space',
-        'permission_changes_during_migration'
-    ]
-
-    for scenario in scenarios:
-        run_chaos_experiment(scenario)
-        validate_recovery_procedures(scenario)
-        document_learned_patterns(scenario)
-```
+Systematically testing migration failure scenarios through controlled chaos experiments helps teams understand how their systems behave under adverse conditions. By simulating network disconnections, process interruptions, concurrent operations, resource constraints, and permission issues, teams can validate their monitoring, alerting, and recovery procedures. Documenting the results of these experiments builds institutional knowledge about failure patterns and improves future migration planning.
 
 This comprehensive approach to database migration failures provides DevOps teams with the knowledge and tools to prevent, diagnose, and recover from migration-related incidents while building resilient deployment processes.
