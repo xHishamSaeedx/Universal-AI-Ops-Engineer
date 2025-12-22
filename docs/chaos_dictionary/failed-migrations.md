@@ -84,7 +84,19 @@ Database migration failures occur when schema changes, data transformations, or 
 ## 5. Immediate Quick Solutions
 
 ### Emergency Mitigation
-The first step involves stopping all application traffic to prevent additional damage from occurring while the migration issue is being resolved. Creating a complete database backup ensures that data can be restored if the rollback process causes further complications. Forcing a migration rollback to a known good state reverts the database to its previous stable condition. Finally, restarting the application with reduced load allows for gradual recovery and monitoring of system stability.
+```bash
+# 1. Stop all application traffic to prevent further issues
+kubectl scale deployment app --replicas=0
+
+# 2. Create database backup before any changes
+pg_dump -h localhost -U user -d mydb > emergency_backup.sql
+
+# 3. Force migration rollback to known good state
+alembic downgrade -1
+
+# 4. Restart application with reduced load
+kubectl scale deployment app --replicas=1
+```
 
 ### Temporary Workarounds
 - **Feature Flags**: Disable features requiring new schema until migration completes
