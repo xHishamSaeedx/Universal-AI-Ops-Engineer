@@ -45,6 +45,20 @@ function DBChaos() {
   const [migrationAttackLoading, setMigrationAttackLoading] = useState(false);
   const [migrationAttackError, setMigrationAttackError] = useState(null);
 
+  // Long transactions chaos controls
+  const [longTxTargetDatabaseUrl, setLongTxTargetDatabaseUrl] = useState(
+    "postgresql://postgres:password@localhost:5432/target_server"
+  );
+  const [lockType, setLockType] = useState("table_lock");
+  const [longTxDurationSeconds, setLongTxDurationSeconds] = useState("");
+  const [targetTable, setTargetTable] = useState("items");
+  const [lockCount, setLockCount] = useState(10);
+  const [advisoryLockId, setAdvisoryLockId] = useState("");
+  const [longTxAttackId, setLongTxAttackId] = useState(null);
+  const [longTxAttack, setLongTxAttack] = useState(null);
+  const [longTxAttackLoading, setLongTxAttackLoading] = useState(false);
+  const [longTxAttackError, setLongTxAttackError] = useState(null);
+
   const backendLabel = useMemo(() => {
     // If we're using the dev proxy, show the real backend too
     if (import.meta.env.DEV && API_BASE === "/api")
@@ -140,6 +154,52 @@ function DBChaos() {
     }
   }
 
+  async function startLongTransactionsAttack() {
+    setLongTxAttackLoading(true);
+    setLongTxAttackError(null);
+    setLongTxAttack(null);
+    try {
+      const res = await chaosApi.breakLongTransactions({
+        targetDatabaseUrl: longTxTargetDatabaseUrl,
+        lockType,
+        durationSeconds: longTxDurationSeconds
+          ? Number(longTxDurationSeconds)
+          : undefined,
+        targetTable:
+          lockType === "table_lock" || lockType === "row_lock"
+            ? targetTable
+            : undefined,
+        lockCount:
+          lockType === "row_lock" || lockType === "advisory_lock"
+            ? lockCount
+            : undefined,
+        advisoryLockId:
+          lockType === "advisory_lock" && advisoryLockId
+            ? Number(advisoryLockId)
+            : undefined,
+      });
+      setLongTxAttackId(res.attack_id);
+    } catch (e) {
+      setLongTxAttackId(null);
+      setLongTxAttackError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLongTxAttackLoading(false);
+    }
+  }
+
+  async function stopLongTransactionsAttack(forceKill = false) {
+    if (!longTxAttackId) return;
+    setLongTxAttackLoading(true);
+    setLongTxAttackError(null);
+    try {
+      await chaosApi.stopLongTransactionsAttack(longTxAttackId, forceKill);
+    } catch (e) {
+      setLongTxAttackError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLongTxAttackLoading(false);
+    }
+  }
+
   useEffect(() => {
     refresh();
   }, []);
@@ -206,13 +266,44 @@ function DBChaos() {
     };
   }, [migrationAttackId]);
 
+  // Poll long transactions attack status while an attack_id is active
+  useEffect(() => {
+    if (!longTxAttackId) return;
+
+    let cancelled = false;
+    let timer = null;
+
+    async function poll() {
+      try {
+        const data = await chaosApi.getLongTransactionsAttack(longTxAttackId);
+        if (cancelled) return;
+        setLongTxAttack(data);
+        if (isTerminalAttackState(data?.state)) {
+          if (timer) clearInterval(timer);
+          timer = null;
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setLongTxAttackError(e instanceof Error ? e.message : String(e));
+      }
+    }
+
+    poll();
+    timer = setInterval(poll, 1000);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+    };
+  }, [longTxAttackId]);
+
   return (
     <div className="db-chaos-page">
       <div className="page-header">
         <h1>Database Chaos Testing</h1>
         <p>
-          Simulate database connection pool exhaustion and failed migrations to
-          test your application's resilience
+          Simulate database connection pool exhaustion, failed migrations, and
+          long-running transactions to test your application's resilience
         </p>
       </div>
 
@@ -467,6 +558,191 @@ function DBChaos() {
             This calls <code>/api/v1/break/migrations</code>, which directly
             modifies the <code>alembic_version</code> table in the target
             database. The original version is stored for safe rollback.
+          </div>
+        </section>
+
+        <section className="chaos-panel attack-panel">
+          <div className="panel-header">
+            <h2>Long-Running Transactions Attack</h2>
+            <span
+              className={`badge ${getAttackBadgeClass(longTxAttack?.state)}`}
+            >
+              {longTxAttack?.state || "idle"}
+            </span>
+          </div>
+
+          <div className="attack-description">
+            <p>
+              This test simulates long-running database transactions that hold
+              locks and block other queries. This causes query timeouts,
+              deadlocks, and performance degradation in the target server.
+            </p>
+            <p>
+              <strong>Lock Types:</strong>
+            </p>
+            <ul>
+              <li>
+                <strong>table_lock</strong>: ACCESS EXCLUSIVE lock on a table
+                (blocks all operations on that table)
+              </li>
+              <li>
+                <strong>row_lock</strong>: SELECT FOR UPDATE locks on multiple
+                rows (blocks updates to those specific rows)
+              </li>
+              <li>
+                <strong>advisory_lock</strong>: PostgreSQL advisory lock using
+                pg_advisory_lock() (blocks other advisory lock attempts)
+              </li>
+            </ul>
+            <p>
+              <strong>Note:</strong> For connection pool exhaustion testing, use
+              the DB Pool Exhaustion Attack section above.
+            </p>
+          </div>
+
+          <div className="formGrid">
+            <label className="field">
+              <div className="fieldLabel">Target Database URL</div>
+              <input
+                className="input"
+                value={longTxTargetDatabaseUrl}
+                onChange={(e) => setLongTxTargetDatabaseUrl(e.target.value)}
+                placeholder="postgresql://postgres:password@localhost:5432/target_server"
+              />
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Lock Type</div>
+              <select
+                className="input"
+                value={lockType}
+                onChange={(e) => setLockType(e.target.value)}
+              >
+                <option value="table_lock">Table Lock</option>
+                <option value="row_lock">Row Lock</option>
+                <option value="advisory_lock">Advisory Lock</option>
+              </select>
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">
+                Auto-rollback (seconds, optional)
+              </div>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={3600}
+                value={longTxDurationSeconds}
+                onChange={(e) => setLongTxDurationSeconds(e.target.value)}
+                placeholder="Leave empty for manual rollback"
+              />
+            </label>
+
+            {(lockType === "table_lock" || lockType === "row_lock") && (
+              <label className="field">
+                <div className="fieldLabel">Target Table</div>
+                <input
+                  className="input"
+                  value={targetTable}
+                  onChange={(e) => setTargetTable(e.target.value)}
+                  placeholder="items"
+                />
+              </label>
+            )}
+
+            {(lockType === "row_lock" || lockType === "advisory_lock") && (
+              <label className="field">
+                <div className="fieldLabel">Lock Count</div>
+                <input
+                  className="input"
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={lockCount}
+                  onChange={(e) => setLockCount(Number(e.target.value))}
+                />
+              </label>
+            )}
+
+            {lockType === "advisory_lock" && (
+              <label className="field">
+                <div className="fieldLabel">Advisory Lock ID (optional)</div>
+                <input
+                  className="input"
+                  type="number"
+                  value={advisoryLockId}
+                  onChange={(e) => setAdvisoryLockId(e.target.value)}
+                  placeholder="Auto-generated if empty"
+                />
+              </label>
+            )}
+          </div>
+
+          <div className="attack-controls">
+            <div className="attack-info">
+              {longTxAttackId ? (
+                <div className="attack-id">
+                  attack_id: <code>{longTxAttackId}</code>
+                  {longTxAttack?.backend_pid && (
+                    <span className="subtle" style={{ marginLeft: "1rem" }}>
+                      Backend PID: {longTxAttack.backend_pid}
+                    </span>
+                  )}
+                  {longTxAttack?.blocked_count !== undefined && (
+                    <span className="subtle" style={{ marginLeft: "1rem" }}>
+                      Blocked Queries: {longTxAttack.blocked_count}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="no-attack">No attack running.</div>
+              )}
+            </div>
+            <div className="btnRow">
+              <button
+                className="btn btn-primary"
+                onClick={startLongTransactionsAttack}
+                disabled={longTxAttackLoading}
+              >
+                {longTxAttackLoading ? "Starting…" : "Start Long Transaction"}
+              </button>
+              <button
+                className="btn btnDanger"
+                onClick={() => stopLongTransactionsAttack(false)}
+                disabled={!longTxAttackId || longTxAttackLoading}
+              >
+                Rollback Transaction
+              </button>
+              <button
+                className="btn btnDanger"
+                onClick={() => stopLongTransactionsAttack(true)}
+                disabled={!longTxAttackId || longTxAttackLoading}
+                title="Force kill the backend process if graceful rollback fails"
+              >
+                Force Kill
+              </button>
+            </div>
+          </div>
+
+          {longTxAttackError && (
+            <pre className="code errText">{longTxAttackError}</pre>
+          )}
+
+          <div className="attack-status">
+            <h3>Attack Status</h3>
+            <pre className="code">
+              {longTxAttack
+                ? JSON.stringify(longTxAttack, null, 2)
+                : "No attack status yet."}
+            </pre>
+          </div>
+
+          <div className="hint">
+            This calls <code>/api/v1/break/long_transactions</code>, which
+            directly opens a database connection and holds a transaction with
+            locks. The transaction can be rolled back gracefully or force-killed
+            if needed.
           </div>
         </section>
       </div>

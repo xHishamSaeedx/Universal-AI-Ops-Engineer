@@ -71,4 +71,41 @@ export const chaosApi = {
     fetchJson(`${API_BASE}/v1/break/migrations/${attackId}/stop`, {
       method: "POST",
     }),
+  breakLongTransactions: ({
+    targetDatabaseUrl,
+    lockType,
+    durationSeconds,
+    targetTable,
+    lockCount,
+    advisoryLockId,
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (targetDatabaseUrl) params.set("target_database_url", targetDatabaseUrl);
+    if (lockType) params.set("lock_type", lockType);
+    if (typeof durationSeconds === "number")
+      params.set("duration_seconds", String(durationSeconds));
+    if (targetTable) params.set("target_table", targetTable);
+    if (typeof lockCount === "number")
+      params.set("lock_count", String(lockCount));
+    if (typeof advisoryLockId === "number")
+      params.set("advisory_lock_id", String(advisoryLockId));
+    const qs = params.toString();
+    const url = `${API_BASE}/v1/break/long_transactions` + (qs ? "?" + qs : "");
+    return fetchJson(url, {
+      method: "POST",
+    });
+  },
+  getLongTransactionsAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/long_transactions/${attackId}`),
+  stopLongTransactionsAttack: (attackId, forceKill = false) => {
+    const params = new URLSearchParams();
+    if (forceKill) params.set("force_kill", "true");
+    const qs = params.toString();
+    const url =
+      `${API_BASE}/v1/break/long_transactions/${attackId}/stop` +
+      (qs ? "?" + qs : "");
+    return fetchJson(url, {
+      method: "POST",
+    });
+  },
 };

@@ -82,6 +82,180 @@ async def readiness_check():
     """Simple readiness check for load balancers"""
     return {"status": "ready"}
 
+
+def _ensure_items_table(db, engine):
+    """Ensure items table exists, create if it doesn't."""
+    from ..core.database import Base
+    try:
+        db.execute(text("SELECT COUNT(*) FROM items"))
+    except Exception as table_error:
+        if "does not exist" in str(table_error).lower() or "undefinedtable" in str(table_error).lower():
+            Base.metadata.create_all(bind=engine)
+
+
+@router.get("/test/items")
+async def test_items_query():
+    """
+    Test endpoint that queries the items table.
+    Useful for testing table_lock type - ACCESS EXCLUSIVE locks block all operations.
+    """
+    try:
+        from ..core.database import get_session_local, get_engine
+        session_local_cls = get_session_local()
+        engine = get_engine()
+        db = session_local_cls()
+        try:
+            _ensure_items_table(db, engine)
+            
+            # Query the items table - this will be blocked by ACCESS EXCLUSIVE lock
+            result = db.execute(text("SELECT COUNT(*) as count FROM items"))
+            row = result.fetchone()
+            count = row[0] if row else 0
+            
+            result = db.execute(text("SELECT id, name FROM items LIMIT 10"))
+            items = [{"id": r[0], "name": r[1]} for r in result.fetchall()]
+            
+            return {
+                "status": "success",
+                "count": count,
+                "items": items,
+                "message": "Successfully queried items table",
+                "lock_type_tested": "table_lock"
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        error_str = str(e).lower()
+        if "timeout" in error_str or "pool" in error_str:
+            return {
+                "status": "timeout",
+                "error": "Database connection timeout",
+                "details": "This may indicate connection pool exhaustion or a lock"
+            }
+        elif "lock" in error_str or "waiting" in error_str or "blocked" in error_str:
+            return {
+                "status": "blocked",
+                "error": "Query blocked by lock (likely long-running transaction)",
+                "details": "This query is waiting for a lock on the items table"
+            }
+        else:
+            return {
+                "status": "error",
+                "error": str(e),
+                "hint": "If table doesn't exist, run: alembic upgrade head"
+            }
+
+
+@router.get("/test/items/update")
+async def test_items_update():
+    """
+    Test endpoint that updates rows in the items table.
+    Useful for testing row_lock type - SELECT FOR UPDATE blocks updates to locked rows.
+    """
+    try:
+        from ..core.database import get_session_local, get_engine
+        session_local_cls = get_session_local()
+        engine = get_engine()
+        db = session_local_cls()
+        try:
+            _ensure_items_table(db, engine)
+            
+            # First, ensure we have at least one row to update
+            result = db.execute(text("SELECT COUNT(*) FROM items"))
+            count = result.fetchone()[0]
+            
+            if count == 0:
+                # Insert a test row
+                db.execute(text("INSERT INTO items (name, description) VALUES ('test', 'test item')"))
+                db.commit()
+            
+            # Try to update a row - this will be blocked if rows are locked with SELECT FOR UPDATE
+            result = db.execute(
+                text("UPDATE items SET description = 'updated' WHERE id = (SELECT id FROM items LIMIT 1)")
+            )
+            db.commit()
+            
+            return {
+                "status": "success",
+                "rows_updated": result.rowcount,
+                "message": "Successfully updated items table",
+                "lock_type_tested": "row_lock"
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        error_str = str(e).lower()
+        if "timeout" in error_str or "pool" in error_str:
+            return {
+                "status": "timeout",
+                "error": "Database connection timeout",
+                "details": "This may indicate connection pool exhaustion or a lock"
+            }
+        elif "lock" in error_str or "waiting" in error_str or "blocked" in error_str:
+            return {
+                "status": "blocked",
+                "error": "Update blocked by row lock (SELECT FOR UPDATE)",
+                "details": "This update is waiting for row locks to be released"
+            }
+        else:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+
+
+@router.get("/test/advisory-lock")
+async def test_advisory_lock(lock_id: int = 12345):
+    """
+    Test endpoint that attempts to acquire an advisory lock.
+    Useful for testing advisory_lock type - pg_advisory_lock blocks other advisory lock attempts.
+    """
+    try:
+        from ..core.database import get_session_local
+        session_local_cls = get_session_local()
+        db = session_local_cls()
+        try:
+            # Try to acquire advisory lock - this will be blocked if another session holds it
+            result = db.execute(text("SELECT pg_try_advisory_lock(:lock_id)"), {"lock_id": lock_id})
+            acquired = result.fetchone()[0]
+            
+            if acquired:
+                # Release it immediately
+                db.execute(text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": lock_id})
+                db.commit()
+                return {
+                    "status": "success",
+                    "lock_acquired": True,
+                    "message": "Successfully acquired and released advisory lock",
+                    "lock_type_tested": "advisory_lock",
+                    "lock_id": lock_id
+                }
+            else:
+                return {
+                    "status": "blocked",
+                    "lock_acquired": False,
+                    "message": "Advisory lock is held by another session",
+                    "lock_type_tested": "advisory_lock",
+                    "lock_id": lock_id
+                }
+        finally:
+            db.close()
+    except Exception as e:
+        error_str = str(e).lower()
+        if "timeout" in error_str or "pool" in error_str:
+            return {
+                "status": "timeout",
+                "error": "Database connection timeout",
+                "details": "This may indicate connection pool exhaustion"
+            }
+        else:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+
+
+
 @router.get("/metrics")
 async def metrics_endpoint():
     """
