@@ -9,6 +9,8 @@ from app.routes.break_db_pool import router as break_db_pool_router
 from app.routes.break_migrations import router as break_migrations_router
 from app.routes.break_long_transactions import router as break_long_transactions_router
 from app.routes.break_env_vars import router as break_env_vars_router
+from app.routes.break_api_crash import router as break_api_crash_router
+from app.routes.break_rate_limit import router as break_rate_limit_router
 
 
 def create_app() -> FastAPI:
@@ -34,6 +36,8 @@ def create_app() -> FastAPI:
     app.include_router(break_migrations_router, prefix=settings.api_v1_prefix, tags=["break"])
     app.include_router(break_long_transactions_router, prefix=settings.api_v1_prefix, tags=["break"])
     app.include_router(break_env_vars_router, prefix=settings.api_v1_prefix, tags=["break"])
+    app.include_router(break_api_crash_router, prefix=settings.api_v1_prefix, tags=["break"])
+    app.include_router(break_rate_limit_router, prefix=settings.api_v1_prefix, tags=["break"])
 
     @app.get("/")
     async def root():

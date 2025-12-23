@@ -138,4 +138,62 @@ export const chaosApi = {
     fetchJson(`${API_BASE}/v1/break/env_vars/${attackId}/stop`, {
       method: "POST",
     }),
+  breakApiCrash: ({
+    targetBaseUrl,
+    crashType,
+    durationSeconds,
+    containerName,
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (targetBaseUrl) params.set("target_base_url", targetBaseUrl);
+    if (crashType) params.set("crash_type", crashType);
+    if (typeof durationSeconds === "number")
+      params.set("duration_seconds", String(durationSeconds));
+    if (containerName) params.set("container_name", containerName);
+    const qs = params.toString();
+    const url = `${API_BASE}/v1/break/api_crash` + (qs ? "?" + qs : "");
+    return fetchJson(url, {
+      method: "POST",
+    });
+  },
+  getApiCrashAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/api_crash/${attackId}`),
+  stopApiCrashAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/api_crash/${attackId}/stop`, {
+      method: "POST",
+    }),
+  breakRateLimit: ({
+    targetBaseUrl,
+    maxRequests,
+    windowSeconds,
+    floodRequests,
+    floodRate,
+    targetEndpoint,
+    durationSeconds,
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (targetBaseUrl) params.set("target_base_url", targetBaseUrl);
+    if (typeof maxRequests === "number")
+      params.set("max_requests", String(maxRequests));
+    if (typeof windowSeconds === "number")
+      params.set("window_seconds", String(windowSeconds));
+    if (typeof floodRequests === "number")
+      params.set("flood_requests", String(floodRequests));
+    if (typeof floodRate === "number")
+      params.set("flood_rate", String(floodRate));
+    if (targetEndpoint) params.set("target_endpoint", targetEndpoint);
+    if (typeof durationSeconds === "number")
+      params.set("duration_seconds", String(durationSeconds));
+    const qs = params.toString();
+    const url = `${API_BASE}/v1/break/rate_limit` + (qs ? "?" + qs : "");
+    return fetchJson(url, {
+      method: "POST",
+    });
+  },
+  getRateLimitAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/rate_limit/${attackId}`),
+  stopRateLimitAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/rate_limit/${attackId}/stop`, {
+      method: "POST",
+    }),
 };

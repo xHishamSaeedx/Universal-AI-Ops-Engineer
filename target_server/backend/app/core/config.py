@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # External service settings (for testing env var chaos)
     external_api_key: str = ""
 
+    # Rate limiting settings
+    rate_limit_enabled: bool = True
+    rate_limit_requests: int = 100
+    rate_limit_window_seconds: int = 60
+
     class Config:
         env_file = ".env"
         case_sensitive = False

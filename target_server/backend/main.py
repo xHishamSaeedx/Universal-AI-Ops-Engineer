@@ -4,7 +4,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import create_tables
-from app.routes import health, pool, env_test
+from app.core.rate_limit import rate_limit_middleware, update_rate_limit_config
+from app.routes import health, pool, env_test, rate_limit
 import time
 
 # Create FastAPI app
@@ -13,6 +14,12 @@ app = FastAPI(
     description="Backend API for the Universal AI Ops Engineer target server",
     version="1.0.0"
 )
+
+# Rate limiting middleware (applied first, before other middleware)
+@app.middleware("http")
+async def apply_rate_limit(request: Request, call_next):
+    """Apply rate limiting to requests."""
+    return await rate_limit_middleware(request, call_next)
 
 # Middleware to track request metrics
 @app.middleware("http")
@@ -54,11 +61,18 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(pool.router, prefix="/api/v1", tags=["pool"])
 app.include_router(env_test.router, prefix="/api/v1", tags=["test"])
+app.include_router(rate_limit.router, prefix="/api/v1", tags=["rate_limit"])
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database tables on startup"""
+    """Initialize database tables and rate limiting on startup"""
     create_tables()
+    # Initialize rate limit config from settings
+    update_rate_limit_config(
+        enabled=settings.rate_limit_enabled,
+        max_requests=settings.rate_limit_requests,
+        window_seconds=settings.rate_limit_window_seconds,
+    )
 
 @app.get("/")
 async def root():
