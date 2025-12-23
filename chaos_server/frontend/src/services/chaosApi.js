@@ -108,4 +108,34 @@ export const chaosApi = {
       method: "POST",
     });
   },
+  breakEnvVars: ({
+    targetEnvFile,
+    envVarName,
+    failureType,
+    wrongValue,
+    composeFile,
+    durationSeconds,
+    targetApiBaseUrl,
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (targetEnvFile) params.set("target_env_file", targetEnvFile);
+    if (envVarName) params.set("env_var_name", envVarName);
+    if (failureType) params.set("failure_type", failureType);
+    if (wrongValue) params.set("wrong_value", wrongValue);
+    if (composeFile) params.set("compose_file", composeFile);
+    if (typeof durationSeconds === "number")
+      params.set("duration_seconds", String(durationSeconds));
+    if (targetApiBaseUrl) params.set("target_api_base_url", targetApiBaseUrl);
+    const qs = params.toString();
+    const url = `${API_BASE}/v1/break/env_vars` + (qs ? "?" + qs : "");
+    return fetchJson(url, {
+      method: "POST",
+    });
+  },
+  getEnvVarsAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/env_vars/${attackId}`),
+  stopEnvVarsAttack: (attackId) =>
+    fetchJson(`${API_BASE}/v1/break/env_vars/${attackId}/stop`, {
+      method: "POST",
+    }),
 };

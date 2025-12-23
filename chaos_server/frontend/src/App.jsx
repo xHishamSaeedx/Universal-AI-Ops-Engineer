@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import About from "./components/About";
 import DBChaos from "./pages/DBChaos";
+import AppChaos from "./pages/AppChaos";
 import "./App.css";
 
 function HomePage() {
@@ -22,6 +23,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/db-chaos" element={<DBChaos />} />
+          <Route path="/app-chaos" element={<AppChaos />} />
         </Routes>
       </div>
     </Router>

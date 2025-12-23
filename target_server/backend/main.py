@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import create_tables
-from app.routes import health, pool
+from app.routes import health, pool, env_test
 import time
 
 # Create FastAPI app
@@ -53,6 +53,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(pool.router, prefix="/api/v1", tags=["pool"])
+app.include_router(env_test.router, prefix="/api/v1", tags=["test"])
 
 @app.on_event("startup")
 async def startup_event():

@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
+    # External service settings (for testing env var chaos)
+    external_api_key: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = False

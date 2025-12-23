@@ -31,6 +31,16 @@ function Navbar() {
               DB Chaos
             </Link>
           </li>
+          <li>
+            <Link
+              to="/app-chaos"
+              className={`navbar-link ${
+                location.pathname === "/app-chaos" ? "active" : ""
+              }`}
+            >
+              Application / API Chaos
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>
